@@ -1,5 +1,7 @@
 
 import "dotenv/config";
+// Minimal declaration to satisfy TypeScript when @types/node is not installed
+declare const process: { env: { [key: string]: string | undefined } };
 import { defineConfig } from "prisma/config";
 
 export default defineConfig({
