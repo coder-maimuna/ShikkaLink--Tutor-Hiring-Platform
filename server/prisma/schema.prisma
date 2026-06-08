@@ -1,0 +1,55 @@
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+
+}
+
+model User {
+  user_id       Int              @id @default(autoincrement())
+  full_name     String           @db.VarChar(100)
+  email         String?          @unique @db.VarChar(100)
+  phone         String?          @unique @db.VarChar(20)
+  password_hash String           @db.VarChar(255)
+  address       String?          @db.Text
+  role          Role
+  is_verified   Boolean          @default(false)
+  is_active     Boolean          @default(true)
+  created_at    DateTime         @default(now())
+  updated_at    DateTime         @updatedAt
+  student       StudentProfile?
+  tutor         TutorProfile?
+
+  @@map("users")
+}
+
+model StudentProfile {
+  student_id        Int    @id @default(autoincrement())
+  user_id           Int    @unique
+  student_class     String? @db.VarChar(50)
+  tutor_preference  String? @db.Text
+  user              User   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@map("student_profiles")
+}
+
+model TutorProfile {
+  tutor_id             Int     @id @default(autoincrement())
+  user_id              Int     @unique
+  teaching_experience  String? @db.Text
+  student_preference   String? @db.Text
+  rating               Decimal @default(0.0) @db.Decimal(2, 1)
+  user                 User    @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@map("tutor_profiles")
+}
+
+enum Role {
+  student
+  tutor
+  admin
+}
