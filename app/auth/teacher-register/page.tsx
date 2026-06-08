@@ -53,18 +53,49 @@ export default function TeacherRegisterPage() {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPassErr('');
+  //Api call to register tutor
+  const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    if (pass !== cpass) {
-      setPassErr('Passwords do not match');
-      return;
+  setPassErr("");
+
+  if (pass !== cpass) {
+    setPassErr("Passwords do not match");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      "http://localhost:5000/auth/register/tutor",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          full_name: fullname,
+          email: email,
+          phone: phone,
+          address: address,
+          password: pass,
+          teaching_experience: totalexp,
+          student_preference: preferredClasses.join(", ")
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message);
     }
 
-    // TODO: Implement actual registration API call
     setSubmitted(true);
-  };
+
+  } catch (error) {
+    setPassErr(error instanceof Error ? error.message : "An error occurred");
+  }
+};
 
   return (
     <div className="reg-body">

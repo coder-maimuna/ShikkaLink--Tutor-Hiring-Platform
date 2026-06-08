@@ -8,7 +8,13 @@ const authRoutes = require('./routes/auth.routes');
 
 const app = express();
 
-app.use(cors());
+//app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
 app.use(express.json());//to parse JSON bodies - works like a translator
 
 app.use('/auth', authRoutes);//traffic controller for auth routes

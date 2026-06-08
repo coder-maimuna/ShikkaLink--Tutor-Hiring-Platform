@@ -12,10 +12,53 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSignIn = (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: Implement actual authentication logic
-  };
+  //Api call to login
+  const handleSignIn = async (e) => {
+  e.preventDefault();
+
+  try {
+    const response = await fetch(
+      "http://localhost:5000/auth/login",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message);
+    }
+
+    localStorage.setItem("token", data.token);
+
+    localStorage.setItem(
+      "user",
+      JSON.stringify(data.user)
+    );
+
+    alert("Login successful");
+
+    if (data.user.role === "student") {
+      router.push("/student-dashboard");
+    } else if (data.user.role === "tutor") {
+      router.push("/teacher-dashboard");
+    } else {
+      router.push("/admin-dashboard");
+    }
+
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred';
+    alert(message);
+  }
+};
 
   return (
     <div style={{ display: 'flex' }} className="auth-container">
