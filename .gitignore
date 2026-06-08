@@ -1,36 +1,47 @@
 # Dependencies
 node_modules/
 
-# Environment variables
+# Environment Variables
 .env
+.env*.local
+
+# Next.js
+.next/
+.vercel/
+
+# v0 Sandbox
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
 
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Build outputs
+# Build Outputs
 dist/
 build/
 
 # Prisma
-prisma/migrations/
 *.db
 *.db-journal
 
-# OS files
+# Railway
+.railway/
+
+# Temporary Files
+tmp/
+temp/
+
+# OS Files
 .DS_Store
 Thumbs.db
 
-# IDE files
+# IDE Files
 .vscode/
 .idea/
-
-# Railway / deployment artifacts
-.railway/
-
-# Temporary files
-tmp/
-temp/
