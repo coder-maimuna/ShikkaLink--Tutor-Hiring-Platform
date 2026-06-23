@@ -17,6 +17,7 @@ model User {
   role          Role
   is_verified   Boolean  @default(false)
   is_active     Boolean  @default(true)
+  university    String?  @db.VarChar(100)  // sprint 3 - for admin verification display
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 
@@ -37,6 +38,9 @@ model TutorProfile {
   user_id             Int     @unique
   teaching_experience String? @db.Text
   student_preference  String? @db.Text
+  subject             String? @db.VarChar(100)         // sprint 3 - tutor's primary subject
+  test_score          Int?                             // sprint 3 - admin verification score
+  interview_status    String? @db.VarChar(50)         // sprint 3 - pending, scheduled, completed, passed, failed
   rating              Decimal @default(0.0) @db.Decimal(2, 1)
 
   @@map("tutor_profiles")
@@ -46,4 +50,84 @@ enum Role {
   student
   tutor
   admin
+}
+
+//afra sprint 3 ---start ekane
+model Session {
+  session_id     Int           @id @default(autoincrement())
+  tutor_id       Int
+  student_id     Int
+  subject        String        @db.VarChar(100)
+  scheduled_time DateTime
+  status         SessionStatus @default(upcoming)
+  meeting_link   String?       @db.VarChar(255)
+  duration_minutes Int?        // sprint 3 - for calculating session hours
+  created_at     DateTime      @default(now())
+
+  @@map("sessions")
+}
+
+model AvailabilitySlot {
+  slot_id     Int    @id @default(autoincrement())
+  tutor_id    Int
+  day_of_week String @db.VarChar(20)
+  time_slot   String @db.VarChar(20)
+  subject     String @db.VarChar(100)
+
+  @@map("availability_slots")
+}
+
+model PracticeTest {
+  test_id        Int        @id @default(autoincrement())
+  tutor_id       Int
+  assigned_to    Int?
+  title          String     @db.VarChar(150)
+  type           String     @db.VarChar(50)
+  question_count Int        @default(0)
+  status         TestStatus @default(draft)
+  assign_date    DateTime?
+  created_at     DateTime   @default(now())
+
+  @@map("practice_tests")
+}
+
+model TuitionBoard {
+  listing_id        Int      @id @default(autoincrement())
+  tutor_id          Int      // sprint 3 - identify which tutor posted this listing
+  subject           String   @db.VarChar(100)
+  days_per_week     Int
+  hours_per_session Int
+  rate_bdt          Int
+  mode              String   @db.VarChar(20)
+  created_at        DateTime @default(now())
+
+  @@map("tuition_board")
+}
+
+model Complaint {
+  complaint_id Int             @id @default(autoincrement())
+  user_id      Int
+  description  String          @db.Text
+  status       ComplaintStatus @default(open)
+  created_at   DateTime        @default(now())
+
+  @@map("complaints")
+}
+
+enum SessionStatus {
+  upcoming
+  ongoing
+  completed
+  cancelled
+}
+
+enum TestStatus {
+  draft
+  pending
+  published
+}
+
+enum ComplaintStatus {
+  open
+  resolved
 }
