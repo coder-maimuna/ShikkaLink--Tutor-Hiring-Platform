@@ -1,15 +1,21 @@
 //sprint 3 afra---
 const prisma = require('../config/prisma');
 
+const sendDashboardResponse = (res, statusCode, payload) => res.status(statusCode).json(payload);
+
 exports.studentDashboard = async (req, res) => {
   console.log('dashboard.controller.studentDashboard entered, req.user=', req.user);
   const userId = req.user && req.user.user_id;
-  if (!userId) return res.status(401).json({ message: 'No authenticated user' });
+  if (!userId) return sendDashboardResponse(res, 401, { success: false, message: 'No authenticated user' });
   try {
     const user = await prisma.user.findUnique({
       where: { user_id: userId },
       select: { full_name: true, email: true }
     });
+
+    if (!user) {
+      return sendDashboardResponse(res, 404, { success: false, message: 'User not found' });
+    }
 
     const profile = await prisma.studentProfile.findUnique({
       where: { user_id: userId }
@@ -73,34 +79,40 @@ exports.studentDashboard = async (req, res) => {
       })
     );
 
-    res.json({
+    return sendDashboardResponse(res, 200, {
+      success: true,
+      message: 'Student dashboard loaded',
       user,
       profile,
       stats: {
         active_subjects:  activeSubjects,
-        session_hours:    completedSessions.length,  // sprint 3 - note: this is session count until duration field is populated
+        session_hours:    completedSessions.length,
         my_tutors:        myTutors.length,
         today_sessions:   todaySessions.length
       },
       todaySessions,
-      myTutors,  // sprint 3 - now includes tutor_name and rating
-      progress  // sprint 3 - now includes progress_percentage
+      myTutors,
+      progress
     });
   } catch (err) {
     console.error('studentDashboard error', err && err.stack);
-    res.status(500).json({ error: err.message });
+    return sendDashboardResponse(res, 500, { success: false, message: err.message || 'Unable to load student dashboard' });
   }
 };
 
 exports.tutorDashboard = async (req, res) => {
   console.log('dashboard.controller.tutorDashboard entered, req.user=', req.user);
   const userId = req.user && req.user.user_id;
-  if (!userId) return res.status(401).json({ message: 'No authenticated user' });
+  if (!userId) return sendDashboardResponse(res, 401, { success: false, message: 'No authenticated user' });
   try {
     const user = await prisma.user.findUnique({
       where: { user_id: userId },
       select: { full_name: true }
     });
+
+    if (!user) {
+      return sendDashboardResponse(res, 404, { success: false, message: 'User not found' });
+    }
 
     const tutorProfile = await prisma.tutorProfile.findUnique({
       where: { user_id: userId }
@@ -180,22 +192,24 @@ exports.tutorDashboard = async (req, res) => {
       take: 5
     });
 
-    res.json({
+    return sendDashboardResponse(res, 200, {
+      success: true,
+      message: 'Tutor dashboard loaded',
       user,
       stats: {
         active_students:     myStudents.length,
         sessions_this_month: sessionsThisMonth,
         rating:              tutorProfile?.rating ?? 0
       },
-      todaySessions,  // sprint 3 - now includes student_name
-      myStudents,  // sprint 3 - now includes student_name, student_class, session_count
+      todaySessions,
+      myStudents,
       practiceTests,
       slots,
       tuitionBoard
     });
   } catch (err) {
     console.error('tutorDashboard error', err && err.stack);
-    res.status(500).json({ error: err.message });
+    return sendDashboardResponse(res, 500, { success: false, message: err.message || 'Unable to load tutor dashboard' });
   }
 };
 
@@ -242,13 +256,15 @@ exports.adminDashboard = async (req, res) => {
       })
     );
 
-    res.json({
+    return sendDashboardResponse(res, 200, {
+      success: true,
+      message: 'Admin dashboard loaded',
       stats: { total_students, verified_tutors, open_complaints, pending_verifications },
-      verificationQueue  // sprint 3 - now includes enriched tutor profile data
+      verificationQueue
     });
   } catch (err) {
     console.error('adminDashboard error', err && err.stack);
-    res.status(500).json({ error: err.message });
+    return sendDashboardResponse(res, 500, { success: false, message: err.message || 'Unable to load admin dashboard' });
   }
 };
 
@@ -257,27 +273,50 @@ exports.verifyTutor = async (req, res) => {
   console.log('dashboard.controller.verifyTutor entered, req.user=', req.user, 'params=', req.params);
   try {
     const { user_id } = req.params;
-    
-    // Update user is_verified status
+    const parsedUserId = Number.parseInt(user_id, 10);
+
+    if (!Number.isInteger(parsedUserId)) {
+      return sendDashboardResponse(res, 400, { success: false, message: 'Invalid user id' });
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { user_id: parsedUserId },
+      select: { user_id: true, role: true, is_verified: true }
+    });
+
+    if (!targetUser) {
+      return sendDashboardResponse(res, 404, { success: false, message: 'User not found' });
+    }
+
+    if (targetUser.role !== 'tutor') {
+      return sendDashboardResponse(res, 400, { success: false, message: 'Only tutor accounts can be verified' });
+    }
+
+    if (targetUser.is_verified) {
+      return sendDashboardResponse(res, 409, { success: false, message: 'Tutor is already verified' });
+    }
+
     const updatedUser = await prisma.user.update({
-      where: { user_id: parseInt(user_id) },
+      where: { user_id: parsedUserId },
       data: { is_verified: true }
     });
 
-    // Update tutor profile interview status
     await prisma.tutorProfile.update({
-      where: { user_id: parseInt(user_id) },
+      where: { user_id: parsedUserId },
       data: { interview_status: 'passed' }
     });
 
-    res.json({ 
-      message: 'Tutor verified successfully', 
-      user_id: updatedUser.user_id,
-      is_verified: updatedUser.is_verified
+    return sendDashboardResponse(res, 200, {
+      success: true,
+      message: 'Tutor verified successfully',
+      data: {
+        user_id: updatedUser.user_id,
+        is_verified: updatedUser.is_verified
+      }
     });
   } catch (err) {
     console.error('verifyTutor error', err && err.stack);
-    res.status(500).json({ error: err.message });
+    return sendDashboardResponse(res, 500, { success: false, message: err.message || 'Unable to verify tutor' });
   }
 };
 
@@ -286,21 +325,41 @@ exports.rejectTutor = async (req, res) => {
   console.log('dashboard.controller.rejectTutor entered, req.user=', req.user, 'params=', req.params);
   try {
     const { user_id } = req.params;
+    const parsedUserId = Number.parseInt(user_id, 10);
     const { reason } = req.body;
 
-    // Update tutor profile interview status to failed
+    if (!Number.isInteger(parsedUserId)) {
+      return sendDashboardResponse(res, 400, { success: false, message: 'Invalid user id' });
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { user_id: parsedUserId },
+      select: { user_id: true, role: true }
+    });
+
+    if (!targetUser) {
+      return sendDashboardResponse(res, 404, { success: false, message: 'User not found' });
+    }
+
+    if (targetUser.role !== 'tutor') {
+      return sendDashboardResponse(res, 400, { success: false, message: 'Only tutor accounts can be rejected' });
+    }
+
     await prisma.tutorProfile.update({
-      where: { user_id: parseInt(user_id) },
+      where: { user_id: parsedUserId },
       data: { interview_status: 'failed' }
     });
 
-    res.json({ 
-      message: 'Tutor rejected', 
-      user_id: parseInt(user_id),
-      reason: reason || 'Not specified'
+    return sendDashboardResponse(res, 200, {
+      success: true,
+      message: 'Tutor rejected',
+      data: {
+        user_id: parsedUserId,
+        reason: reason || 'Not specified'
+      }
     });
   } catch (err) {
     console.error('rejectTutor error', err && err.stack);
-    res.status(500).json({ error: err.message });
+    return sendDashboardResponse(res, 500, { success: false, message: err.message || 'Unable to reject tutor' });
   }
 };
