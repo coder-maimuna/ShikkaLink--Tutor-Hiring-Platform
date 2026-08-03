@@ -125,6 +125,7 @@ export default function StudentRegisterPage() {
               Full name <span className="reg-req">*</span>
             </label>
             <input
+              data-testid="student-name"
               type="text"
               id="fullname"
               placeholder="Rahim Uddin"
@@ -154,6 +155,7 @@ export default function StudentRegisterPage() {
                 Class <span className="reg-req">*</span>
               </label>
               <select
+                data-testid="student-class"
                 id="cls"
                 value={cls}
                 onChange={(e) => setCls(e.target.value)}
@@ -161,7 +163,7 @@ export default function StudentRegisterPage() {
               >
                 <option value="" disabled>
                   Select
-                </option>
+                </option>npx cypress open
                 <option value="6">Class 6</option>
                 <option value="7">Class 7</option>
                 <option value="8">Class 8</option>
@@ -176,6 +178,7 @@ export default function StudentRegisterPage() {
                 Phone <span className="reg-req">*</span>
               </label>
               <input
+                data-testid="student-phone"
                 type="tel"
                 id="phone"
                 placeholder="01813123123"
@@ -192,6 +195,7 @@ export default function StudentRegisterPage() {
               Email <span className="reg-req">*</span>
             </label>
             <input
+              data-testid="student-email"
               type="email"
               id="email"
               placeholder="sayma@gmail.com"
@@ -207,6 +211,7 @@ export default function StudentRegisterPage() {
                 Password <span className="reg-req">*</span>
               </label>
               <input
+                data-testid="student-password"
                 type="password"
                 id="pass"
                 placeholder="••••••"
@@ -221,6 +226,7 @@ export default function StudentRegisterPage() {
                 Confirm password <span className="reg-req">*</span>
               </label>
               <input
+                data-testid="student-confirm-password"
                 type="password"
                 id="cpass"
                 placeholder="••••••"
@@ -234,7 +240,7 @@ export default function StudentRegisterPage() {
           <p className="reg-err-msg">{passErr}</p>
 
           {!submitted && (
-            <Button type="submit" className="w-full h-11 bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 mt-4 rounded-lg">
+            <Button data-testid="register-button" type="submit" className="w-full h-11 bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 mt-4 rounded-lg">
               Create account
             </Button>
           )}
