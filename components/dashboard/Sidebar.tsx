@@ -29,33 +29,27 @@ interface NavItem {
 }
 
 const studentNav: NavItem[] = [
-  { href: '/dashboard/student', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/student/profile', label: 'My Profile', icon: User },
   { href: '/dashboard/student/find-tutor', label: 'Find Tutor', icon: Search },
   { href: '/dashboard/student/my-sessions', label: 'My Sessions', icon: CalendarDays },
   { href: '/dashboard/student/schedule', label: 'Schedule', icon: CalendarDays },
   { href: '/dashboard/student/progress', label: 'Progress', icon: BarChart3 },
-  { href: '/dashboard/student/settings', label: 'Settings', icon: Settings },
 ];
 
 const tutorNav: NavItem[] = [
-  { href: '/dashboard/tutor', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/tutor/profile', label: 'My Profile', icon: User },
   { href: '/dashboard/tutor/my-students', label: 'My Students', icon: Users },
   { href: '/dashboard/tutor/availability', label: 'Availability', icon: Clock3 },
   { href: '/dashboard/tutor/schedule', label: 'Schedule', icon: CalendarDays },
   { href: '/dashboard/tutor/practice-tests', label: 'Practice Tests', icon: ClipboardList },
   { href: '/dashboard/tutor/tuition-board', label: 'Tuition Board', icon: CircleDollarSign },
-  { href: '/dashboard/tutor/settings', label: 'Settings', icon: Settings },
 ];
 
 const adminNav: NavItem[] = [
-  { href: '/dashboard/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/admin/tutors', label: 'All Tutors', icon: Users },
   { href: '/dashboard/admin/students', label: 'All Students', icon: User },
   { href: '/dashboard/admin/pending', label: 'Pending Requests', icon: ShieldCheck },
   { href: '/dashboard/admin/users', label: 'All Users', icon: Users },
-  { href: '/dashboard/admin/settings', label: 'Settings', icon: Settings },
 ];
 
 function getNavigation(role: string | null): NavItem[] {

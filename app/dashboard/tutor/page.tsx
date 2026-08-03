@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, CalendarDays, Star, Users } from "lucide-react";
+import { AlertCircle, CalendarDays, Star, Users, Trash2 } from "lucide-react";
 import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 import StatCard from "@/components/dashboard/StatCard";
 import api, { apiErrorMessage } from "@/lib/api";
@@ -13,6 +13,7 @@ export default function TutorDashboardPage() {
   const [data, setData] = useState<TutorDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cancellingSession, setCancellingSession] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -33,6 +34,44 @@ export default function TutorDashboardPage() {
       active = false;
     };
   }, []);
+
+  const handleCancelSession = async (sessionId: number) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Please login to cancel bookings");
+        return;
+      }
+
+      if (!confirm("Are you sure you want to cancel this booking?")) {
+        return;
+      }
+
+      setCancellingSession(sessionId);
+
+      const response = await fetch(`/api/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        alert("Booking cancelled successfully");
+        // Refresh dashboard
+        const response = await api.get<TutorDashboardResponse>("/dashboard/tutor");
+        if (response.data) setData(response.data);
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to cancel booking: ${errorData.message}`);
+      }
+    } catch (err) {
+      console.error('Error cancelling session:', err);
+      alert("Failed to cancel booking. Please try again.");
+    } finally {
+      setCancellingSession(null);
+    }
+  };
 
   const stats = useMemo(
     () => [
@@ -88,6 +127,50 @@ export default function TutorDashboardPage() {
         ))}
       </div>
 
+      {/* Booked Students Section */}
+      <section className="rounded-xl border border-[#E8F5E9] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-[#1A1A1A]">Booked Students</h2>
+        </div>
+        <div className="space-y-3">
+          {!data?.myStudents?.length ? (
+            <p className="rounded-xl border border-dashed border-[#E8F5E9] p-6 text-center text-sm text-[#1A1A1A]/60">
+              No bookings yet
+            </p>
+          ) : (
+            data.myStudents.map((session, index) => (
+              <div key={session.session_id ?? `${session.student_name}-${session.subject}-${index}`} className="rounded-xl border border-[#E8F5E9] bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-[#1A1A1A]/50">
+                      {session.booked_date ? new Date(session.booked_date).toLocaleDateString() : ""}
+                    </p>
+                    <p className="mt-1 font-semibold text-[#2D7A3A]">{session.subject || "Session"}</p>
+                    <p className="text-sm text-[#1A1A1A]/70">{session.student_name || `Student #${session.student_id}`}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className="inline-flex rounded-full bg-[#E8F5E9] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#2D7A3A]">
+                      {session.status || "upcoming"}
+                    </span>
+                    {cancellingSession === session.session_id ? (
+                      <span className="text-xs text-[#1A1A1A]/50">Cancelling...</span>
+                    ) : (
+                      <button
+                        onClick={() => handleCancelSession(session.session_id!)}
+                        className="inline-flex items-center rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-200 transition-colors"
+                      >
+                        <Trash2 size={12} className="mr-1" />
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <section className="rounded-xl border border-[#E8F5E9] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
           <h2 className="mb-4 text-lg font-semibold text-[#1A1A1A]">Today&apos;s Sessions</h2>
@@ -111,6 +194,17 @@ export default function TutorDashboardPage() {
                       <span className="inline-flex rounded-full bg-[#E8F5E9] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#2D7A3A]">
                         {session.status || "upcoming"}
                       </span>
+                      {cancellingSession === session.session_id ? (
+                        <span className="text-xs text-[#1A1A1A]/50">Cancelling...</span>
+                      ) : (
+                        <button
+                          onClick={() => handleCancelSession(session.session_id!)}
+                          className="inline-flex items-center rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-200 transition-colors"
+                        >
+                          <Trash2 size={12} className="mr-1" />
+                          Cancel
+                        </button>
+                      )}
                       {index === 0 && session.meeting_link ? (
                         <a
                           href={session.meeting_link}

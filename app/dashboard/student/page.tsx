@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, BookOpen, CalendarDays, GraduationCap, Headphones, Users } from "lucide-react";
+import { AlertCircle, BookOpen, CalendarDays, GraduationCap, Headphones, Users, Trash2 } from "lucide-react";
 import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 import StatCard from "@/components/dashboard/StatCard";
 import api, { apiErrorMessage } from "@/lib/api";
@@ -11,8 +11,10 @@ import type { StudentDashboardResponse } from "@/lib/dashboard-types";
 
 export default function StudentDashboardPage() {
   const [data, setData] = useState<StudentDashboardResponse | null>(null);
+  const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cancellingSession, setCancellingSession] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -33,6 +35,65 @@ export default function StudentDashboardPage() {
       active = false;
     };
   }, []);
+
+  // Fetch student sessions from booking endpoint
+  useEffect(() => {
+    let active = true;
+
+    async function loadSessions() {
+      try {
+        const response = await api.get("/student/sessions");
+        if (active && response.data.success && response.data.sessions) {
+          setSessions(response.data.sessions);
+        }
+      } catch (err) {
+        console.error('Failed to load sessions:', err);
+      }
+    }
+
+    loadSessions();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleCancelSession = async (sessionId: number) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Please login to cancel bookings");
+        return;
+      }
+
+      if (!confirm("Are you sure you want to cancel this booking?")) {
+        return;
+      }
+
+      setCancellingSession(sessionId);
+
+      const response = await fetch(`/api/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        alert("Booking cancelled successfully");
+        // Refresh sessions list
+        const sessionsResponse = await api.get("/student/sessions");
+        setSessions(sessionsResponse.data.sessions || []);
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to cancel booking: ${errorData.message}`);
+      }
+    } catch (err) {
+      console.error('Error cancelling session:', err);
+      alert("Failed to cancel booking. Please try again.");
+    } finally {
+      setCancellingSession(null);
+    }
+  };
 
   const stats = useMemo(
     () => [
@@ -113,12 +174,12 @@ export default function StudentDashboardPage() {
         <section className="rounded-xl border border-[#E8F5E9] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
           <h2 className="mb-4 text-lg font-semibold text-[#1A1A1A]">Today&apos;s Sessions</h2>
           <div className="space-y-3">
-            {!data?.todaySessions?.length ? (
+            {!sessions.length ? (
               <p className="rounded-xl border border-dashed border-[#E8F5E9] p-6 text-center text-sm text-[#1A1A1A]/60">
                 No sessions today 📚
               </p>
             ) : (
-              data.todaySessions.map((session) => (
+              sessions.map((session) => (
                 <div key={session.session_id ?? `${session.subject}-${session.scheduled_time}`} className="rounded-xl border border-[#E8F5E9] bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div>
@@ -126,12 +187,23 @@ export default function StudentDashboardPage() {
                         {session.scheduled_time ? new Date(session.scheduled_time).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : ""}
                       </p>
                       <p className="mt-1 font-semibold text-[#2D7A3A]">{session.subject || "Session"}</p>
-                      <p className="text-sm text-[#1A1A1A]/70">Tutor #{session.tutor_id ?? "-"}</p>
+                      <p className="text-sm text-[#1A1A1A]/70">{session.tutor_name || `Tutor #${session.tutor_id}`}</p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       <span className="inline-flex rounded-full bg-[#E8F5E9] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#2D7A3A]">
                         {session.status || "upcoming"}
                       </span>
+                      {cancellingSession === session.session_id ? (
+                        <span className="text-xs text-[#1A1A1A]/50">Cancelling...</span>
+                      ) : (
+                        <button
+                          onClick={() => handleCancelSession(session.session_id!)}
+                          className="inline-flex items-center rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-200 transition-colors"
+                        >
+                          <Trash2 size={12} className="mr-1" />
+                          Cancel
+                        </button>
+                      )}
                       {session.meeting_link ? (
                         <a
                           href={session.meeting_link}

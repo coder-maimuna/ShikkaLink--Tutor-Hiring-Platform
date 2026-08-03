@@ -6,6 +6,7 @@ const cors = require('cors');
 
 const authRoutes = require('./routes/auth.routes');
 const tutorSearchRoutes = require('./routes/tutor.search.routes');
+const bookingRoutes = require('./routes/booking.routes');
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use(express.json());//to parse JSON bodies - works like a translator
 
 app.use('/auth', authRoutes);//traffic controller for auth routes
 app.use('/api', tutorSearchRoutes);
+app.use('/api', bookingRoutes);
 
 //afra-sprint3
 app.use('/dashboard', require('./routes/dashboard.routes'));

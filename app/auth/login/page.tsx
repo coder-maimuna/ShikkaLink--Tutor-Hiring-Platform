@@ -47,11 +47,11 @@ export default function LoginPage() {
     alert("Login successful");
 
     if (data.user.role === "student") {
-      router.push("/student-dashboard");
+      router.push("/dashboard/student/profile");
     } else if (data.user.role === "tutor") {
-      router.push("/teacher-dashboard");
+      router.push("/dashboard/tutor/profile");
     } else {
-      router.push("/admin-dashboard");
+      router.push("/dashboard/admin");
     }
 
   } catch (error: unknown) {

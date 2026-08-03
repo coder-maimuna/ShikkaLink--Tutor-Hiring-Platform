@@ -126,16 +126,6 @@ model Session {
   @@map("sessions")
 }
 
-model AvailabilitySlot {
-  slot_id     Int    @id @default(autoincrement())
-  tutor_id    Int
-  day_of_week String @db.VarChar(20)
-  time_slot   String @db.VarChar(20)
-  subject     String @db.VarChar(100)
-
-  @@map("availability_slots")
-}
-
 model PracticeTest {
   test_id        Int        @id @default(autoincrement())
   tutor_id       Int

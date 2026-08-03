@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search, ChevronRight, ChevronLeft, Star, Users, BookOpen, TrendingUp, Menu, X, ArrowRight, Zap, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -252,8 +253,8 @@ export default function Home() {
                 {['Find Mentors', 'Features', 'About', 'Pricing'].map((item) => (
                   <motion.a
                     key={item}
-                    href="#"
-                    className="text-sm text-muted-foreground hover:text-foreground transition relative"
+                    href={item === 'Find Mentors' ? '/find_tutor' : '#'}
+                    className="text-sm text-muted-foreground hover:text-foreground transition relative block"
                     whileHover={{ scale: 1.05 }}
                   >
                     {item}
@@ -304,9 +305,14 @@ export default function Home() {
               >
                 <div className="space-y-3 pt-4">
                   {['Find Mentors', 'Features', 'About', 'Pricing'].map((item) => (
-                    <a key={item} href="#" className="block text-muted-foreground hover:text-foreground py-2">
+                    <motion.a
+                      key={item}
+                      href={item === 'Find Mentors' ? '/find_tutor' : '#'}
+                      className="block text-muted-foreground hover:text-foreground py-2"
+                      whileHover={{ scale: 1.05 }}
+                    >
                       {item}
-                    </a>
+                    </motion.a>
                   ))}
                   <div className="flex gap-2 pt-4">
                     <Button variant="ghost" className="flex-1 text-muted-foreground hover:bg-secondary" onClick={() => router.push('/auth/login')}>

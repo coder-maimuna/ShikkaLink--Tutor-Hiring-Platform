@@ -178,13 +178,13 @@ export default function TutorsPage() {
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2 border-t border-[#E8F5E9] pt-4">
-                  <a
-                    href={`/dashboard/admin/tutor/${tutor.user_id}`}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-[#E8F5E9] px-3 py-1.5 text-sm font-semibold text-[#2D7A3A] hover:bg-[#E8F5E9]"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    View Profile
-                  </a>
+                    <a
+                      href={`/tutor-profile/${tutor.user_id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-[#E8F5E9] px-3 py-1.5 text-sm font-semibold text-[#2D7A3A] hover:bg-[#E8F5E9]"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      View Profile
+                    </a>
                   {tutor.is_active ? (
                     <button
                       type="button"

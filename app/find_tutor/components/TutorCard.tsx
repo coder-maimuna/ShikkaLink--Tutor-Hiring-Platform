@@ -23,20 +23,44 @@ export default function TutorCard({
   const router = useRouter();
 
   const handleViewProfile = () => {
-    router.push(`/find_tutor/${tutor.tutor_id}`);
+    router.push(`/tutor-profile/${tutor.tutor_id}`);
   };
 
-  const handleBookSession = () => {
-    const token = localStorage.getItem("token");
+  const handleBookSession = async () => {
+  const token = localStorage.getItem("token");
 
-    if (token) {
-      router.push(`/booking/${tutor.tutor_id}`);
-    } else {
-      router.push(
-        "/auth/student-register?message=Please register to book a session"
-      );
+  if (!token) {
+    router.push("/auth/login");
+    return;
+  }
+
+  try {
+    const response = await fetch("http://localhost:5000/api/sessions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        tutor_id: tutor.tutor_id,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message || "Failed to book session");
+      return;
     }
-  };
+
+    alert("Session booked successfully!");
+    router.push("/dashboard/student");
+
+  } catch (err) {
+    console.error(err);
+    alert("Failed to book session.");
+  }
+};
 
   return (
     <article
