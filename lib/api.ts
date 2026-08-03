@@ -1,6 +1,6 @@
 import axios, { type AxiosError } from 'axios';
 
-const baseURL = process.env.NEXT_PUBLIC_API_URL || '';
+const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 const api = axios.create({
   baseURL,
@@ -14,7 +14,17 @@ function getStoredToken(): string | null {
     return null;
   }
 
-  return window.localStorage.getItem('shikkalink_token');
+  return window.localStorage.getItem('token') || window.localStorage.getItem('shikkalink_token');
+}
+
+export function clearStoredAuth(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.removeItem('token');
+  window.localStorage.removeItem('shikkalink_token');
+  window.localStorage.removeItem('user');
 }
 
 export function getStoredTokenValue(): string | null {
@@ -82,7 +92,7 @@ api.interceptors.response.use(
 
     if (typeof window !== 'undefined') {
       if (status === 401) {
-        window.localStorage.removeItem('shikkalink_token');
+        clearStoredAuth();
         window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { message } }));
       } else if (status === 403) {
         window.dispatchEvent(new CustomEvent('auth:forbidden', { detail: { message } }));

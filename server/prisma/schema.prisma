@@ -46,6 +46,65 @@ model TutorProfile {
   @@map("tutor_profiles")
 }
 
+model TutorEducation {
+  id                  Int      @id @default(autoincrement())
+  tutor_id            Int
+  current_institution String?  @db.VarChar(200)
+  current_level       String?  @db.VarChar(100)
+  current_subject     String?  @db.VarChar(100)
+  current_grad_year   String?  @db.VarChar(10)
+  current_gpa         String?  @db.VarChar(10)
+  prev_institution    String?  @db.VarChar(200)
+  prev_level          String?  @db.VarChar(100)
+  prev_subject        String?  @db.VarChar(100)
+  prev_grad_year      String?  @db.VarChar(10)
+  prev_gpa            String?  @db.VarChar(10)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  @@map("tutor_education")
+}
+
+model TutorPreference {
+  id                    Int      @id @default(autoincrement())
+  tutor_id              Int      @unique
+  subjects              String?  @db.VarChar(200)
+  class_range           String?  @db.VarChar(200)
+  preferred_gender      String?  @db.VarChar(50)
+  tuition_type          String?  @db.VarChar(100)
+  salary_range_min      Int?
+  salary_range_max      Int?
+  preferred_curriculum  String?  @db.VarChar(100)
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  @@map("tutor_preferences")
+}
+
+model TutorExperience {
+  id          Int      @id @default(autoincrement())
+  tutor_id    Int
+  institution String?  @db.VarChar(200)
+  class_range String?  @db.VarChar(100)
+  subjects    String?  @db.VarChar(200)
+  duration    String?  @db.VarChar(50)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@map("tutor_experiences")
+}
+
+model TutorDocument {
+  id            Int      @id @default(autoincrement())
+  tutor_id      Int
+  document_type String   @db.VarChar(100)
+  file_name     String?  @db.VarChar(200)
+  file_url      String?  @db.Text
+  uploaded_at   DateTime @default(now())
+
+  @@map("tutor_documents")
+}
+
 enum Role {
   student
   tutor

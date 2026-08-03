@@ -107,7 +107,7 @@ exports.tutorDashboard = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { user_id: userId },
-      select: { full_name: true }
+      select: { full_name: true, email: true, phone: true, address: true, is_verified: true }
     });
 
     if (!user) {
@@ -210,6 +210,127 @@ exports.tutorDashboard = async (req, res) => {
   } catch (err) {
     console.error('tutorDashboard error', err && err.stack);
     return sendDashboardResponse(res, 500, { success: false, message: err.message || 'Unable to load tutor dashboard' });
+  }
+};
+
+exports.getTutorProfileDetails = async (req, res) => {
+  const tutorId = req.user.user_id;
+  try {
+    const education = await prisma.tutorEducation.findFirst({
+      where: { tutor_id: tutorId }
+    });
+    const preference = await prisma.tutorPreference.findUnique({
+      where: { tutor_id: tutorId }
+    });
+    const experiences = await prisma.tutorExperience.findMany({
+      where: { tutor_id: tutorId }
+    });
+    const documents = await prisma.tutorDocument.findMany({
+      where: { tutor_id: tutorId }
+    });
+    res.json({ education, preference, experiences, documents });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.saveTutorEducation = async (req, res) => {
+  const tutorId = req.user.user_id;
+  try {
+    const existing = await prisma.tutorEducation.findFirst({
+      where: { tutor_id: tutorId }
+    });
+    let result;
+    if (existing) {
+      result = await prisma.tutorEducation.update({
+        where: { id: existing.id },
+        data: { ...req.body, tutor_id: tutorId }
+      });
+    } else {
+      result = await prisma.tutorEducation.create({
+        data: { ...req.body, tutor_id: tutorId }
+      });
+    }
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.saveTutorPreference = async (req, res) => {
+  const tutorId = req.user.user_id;
+  try {
+    const result = await prisma.tutorPreference.upsert({
+      where: { tutor_id: tutorId },
+      update: { ...req.body },
+      create: { ...req.body, tutor_id: tutorId }
+    });
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.saveTutorExperience = async (req, res) => {
+  const tutorId = req.user.user_id;
+  try {
+    await prisma.tutorExperience.deleteMany({
+      where: { tutor_id: tutorId }
+    });
+    const result = await prisma.tutorExperience.createMany({
+      data: (req.body.experiences || []).map((exp) => ({
+        ...exp,
+        tutor_id: tutorId
+      }))
+    });
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.saveTutorDocuments = async (req, res) => {
+  const tutorId = req.user.user_id;
+  try {
+    // Check if req.body is an array (multiple documents) or single object (backward compatibility)
+    const documents = Array.isArray(req.body) ? req.body : [req.body];
+
+    // Create all documents
+    const results = await Promise.all(
+      documents.map((doc) =>
+        prisma.tutorDocument.create({
+          data: { ...doc, tutor_id: tutorId }
+        })
+      )
+    );
+
+    res.json({ success: true, data: results });
+  } catch (err) {
+    console.error('saveTutorDocuments error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Part 2: Submit for verification endpoint
+exports.submitForVerification = async (req, res) => {
+  const tutorId = req.user.user_id;
+  try {
+    const tutorProfile = await prisma.tutorProfile
+      .findUnique({ where: { user_id: tutorId } });
+
+    if (!tutorProfile?.teaching_experience?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please add teaching experience first'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Verification submitted! Admin will review soon.'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -361,5 +482,162 @@ exports.rejectTutor = async (req, res) => {
   } catch (err) {
     console.error('rejectTutor error', err && err.stack);
     return sendDashboardResponse(res, 500, { success: false, message: err.message || 'Unable to reject tutor' });
+  }
+};
+
+// sprint 3 - NEW: Get pending tutors with their documents for verification
+exports.getPendingTutors = async (req, res) => {
+  console.log('dashboard.controller.getPendingTutors entered, req.user=', req.user);
+  try {
+    const verificationQueueRaw = await prisma.user.findMany({
+      where: {
+        role: 'tutor',
+        is_verified: false,
+        is_active: true
+      },
+      select: {
+        user_id: true,
+        full_name: true,
+        email: true,
+        phone: true,
+        university: true,
+        created_at: true
+      },
+      orderBy: { created_at: 'asc' }
+    });
+
+    // Enrich with tutor profile details and documents
+    const verificationQueue = await Promise.all(
+      verificationQueueRaw.map(async (tutor) => {
+        const tutorProfile = await prisma.tutorProfile.findUnique({
+          where: { user_id: tutor.user_id },
+          select: {
+            subject: true,
+            teaching_experience: true,
+            test_score: true,
+            interview_status: true
+          }
+        });
+
+        // Get documents for this tutor
+        const documents = await prisma.tutorDocument.findMany({
+          where: { tutor_id: tutor.user_id },
+          select: {
+            id: true,
+            document_type: true,
+            file_name: true,
+            file_url: true,
+            created_at: true
+          },
+          orderBy: { created_at: 'desc' }
+        });
+
+        return {
+          user_id: tutor.user_id,
+          full_name: tutor.full_name,
+          email: tutor.email,
+          phone: tutor.phone,
+          university: tutor.university || 'N/A',
+          created_at: tutor.created_at,
+          subject: tutorProfile?.subject || 'Not specified',
+          teaching_experience: tutorProfile?.teaching_experience || 'N/A',
+          test_score: tutorProfile?.test_score || 'Not taken',
+          interview_status: tutorProfile?.interview_status || 'pending',
+          documents: documents
+        };
+      })
+    );
+
+    return sendDashboardResponse(res, 200, {
+      success: true,
+      message: 'Pending tutors loaded',
+      pending_tutors: verificationQueue
+    });
+  } catch (err) {
+    console.error('getPendingTutors error', err && err.stack);
+    return sendDashboardResponse(res, 500, { success: false, message: err.message || 'Unable to load pending tutors' });
+  }
+};
+
+exports.updateStudentProfile = async (req, res) => {
+  const userId = req.user.user_id;
+  try {
+    const { full_name, phone, address } = req.body;
+    
+    // Update user table
+    await prisma.user.update({
+      where: { user_id: userId },
+      data: { full_name, phone, address }
+    });
+    
+    // Update student_profile table
+    await prisma.studentProfile.update({
+      where: { user_id: userId },
+      data: {
+        student_class: req.body.student_class,
+        tutor_preference: req.body.tutor_preference
+      }
+    });
+    
+    res.json({ 
+      success: true,
+      message: 'Profile updated'
+    });
+  } catch (err) {
+    console.error('updateStudentProfile error', err && err.stack);
+    res.status(500).json({ error: err.message || 'Unable to update profile' });
+  }
+};
+
+exports.requestVerification = async (req, res) => {
+  const userId = req.user.user_id;
+  try {
+    const tutorProfile = await prisma.tutorProfile.findUnique({
+      where: { user_id: userId }
+    });
+
+    if (!tutorProfile?.teaching_experience?.trim()) {
+      return res.status(400).json({
+        error: 'Please enter teaching experience first'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Verification request submitted! Admin will review soon.'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateTutorPersonal = async (req, res) => {
+  const userId = req.user.user_id;
+  try {
+    const {
+      full_name, phone, address,
+      teaching_experience, student_preference
+    } = req.body;
+
+    await prisma.user.update({
+      where: { user_id: userId },
+      data: {
+        full_name: full_name || undefined,
+        phone: phone || undefined,
+        address: address || undefined
+      }
+    });
+
+    await prisma.tutorProfile.update({
+      where: { user_id: userId },
+      data: {
+        teaching_experience: teaching_experience || undefined,
+        student_preference: student_preference || undefined
+      }
+    });
+
+    res.json({ success: true, message: 'Saved!' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };

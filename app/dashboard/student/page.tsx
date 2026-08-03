@@ -2,46 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, BookOpen, CalendarDays, Users, TrendingUp, GraduationCap } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertCircle, BookOpen, CalendarDays, GraduationCap, Headphones, Users } from "lucide-react";
+import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
+import StatCard from "@/components/dashboard/StatCard";
 import api, { apiErrorMessage } from "@/lib/api";
-import DashboardStateCard from "@/components/dashboard/DashboardStateCard";
-
-interface StudentDashboardData {
-  profile?: {
-    name?: string;
-    role?: string;
-    email?: string;
-    phone?: string;
-    institution?: string;
-  } | null;
-  stats?: {
-    upcomingSessions?: number;
-    completedSessions?: number;
-    activeTutors?: number;
-    averageScore?: number;
-  } | null;
-  sessions?: Array<{
-    id?: number | string;
-    subject?: string;
-    tutor?: string;
-    time?: string;
-    date?: string;
-  }> | null;
-  tutors?: Array<{
-    id?: number | string;
-    name?: string;
-    subject?: string;
-    rating?: number | string;
-  }> | null;
-  progress?: Array<{
-    subject?: string;
-    progress?: number;
-  }> | null;
-}
+import { formatTodayDate } from "@/lib/dashboard-utils";
+import type { StudentDashboardResponse } from "@/lib/dashboard-types";
 
 export default function StudentDashboardPage() {
-  const [data, setData] = useState<StudentDashboardData | null>(null);
+  const [data, setData] = useState<StudentDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,18 +19,12 @@ export default function StudentDashboardPage() {
 
     async function loadDashboard() {
       try {
-        const response = await api.get<StudentDashboardData>("/dashboard/student");
-        if (active) {
-          setData(response.data);
-        }
+        const response = await api.get<StudentDashboardResponse>("/dashboard/student");
+        if (active) setData(response.data);
       } catch (err) {
-        if (active) {
-          setError(apiErrorMessage(err));
-        }
+        if (active) setError(apiErrorMessage(err));
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     }
 
@@ -71,36 +34,33 @@ export default function StudentDashboardPage() {
     };
   }, []);
 
-  const stats = useMemo(() => [
-    {
-      title: "Upcoming Sessions",
-      value: data?.stats?.upcomingSessions ?? 0,
-      description: "Scheduled this week",
-      icon: <CalendarDays className="h-5 w-5" />,
-    },
-    {
-      title: "Completed Sessions",
-      value: data?.stats?.completedSessions ?? 0,
-      description: "Lessons completed",
-      icon: <BookOpen className="h-5 w-5" />,
-    },
-    {
-      title: "Active Tutors",
-      value: data?.stats?.activeTutors ?? 0,
-      description: "Current mentors",
-      icon: <Users className="h-5 w-5" />,
-    },
-    {
-      title: "Average Score",
-      value: `${data?.stats?.averageScore ?? 0}%`,
-      description: "Progress average",
-      icon: <TrendingUp className="h-5 w-5" />,
-    },
-  ], [data]);
+  const stats = useMemo(
+    () => [
+      {
+        title: "Active Subjects",
+        value: data?.stats?.active_subjects ?? 0,
+        icon: <BookOpen className="h-5 w-5" />,
+      },
+      {
+        title: "Session Hours",
+        value: data?.stats?.session_hours ?? 0,
+        icon: <CalendarDays className="h-5 w-5" />,
+      },
+      {
+        title: "My Tutors",
+        value: data?.stats?.my_tutors ?? 0,
+        icon: <Users className="h-5 w-5" />,
+      },
+      {
+        title: "Today's Sessions",
+        value: data?.stats?.today_sessions ?? 0,
+        icon: <GraduationCap className="h-5 w-5" />,
+      },
+    ],
+    [data?.stats],
+  );
 
-  if (loading) {
-    return <div className="p-6 text-sm text-slate-500">Loading dashboard…</div>;
-  }
+  if (loading) return <DashboardSkeleton label="Loading student dashboard…" />;
 
   if (error) {
     return (
@@ -113,127 +73,162 @@ export default function StudentDashboardPage() {
     );
   }
 
+  const sessionCount = data?.stats?.today_sessions ?? data?.todaySessions?.length ?? 0;
+  const tutorMatchCount = data?.stats?.my_tutors ?? data?.myTutors?.length ?? 0;
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <section className="mb-6">
+        <h1 className="text-2xl font-semibold text-[#1A1A1A]">
+          Welcome Back, {data?.user?.full_name || "Student"}! 👋
+        </h1>
+        <p className="mt-1 text-sm text-[#1A1A1A]/60">{formatTodayDate()}</p>
+        <p className="mt-1 text-sm font-medium text-[#2D7A3A]">
+          You have {sessionCount} session{sessionCount === 1 ? "" : "s"} today
+        </p>
+      </section>
+
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map((item) => (
+          <StatCard key={item.title} title={item.title} value={item.value} icon={item.icon} />
+        ))}
+      </div>
+
+      <div className="mb-6 flex flex-col gap-4 rounded-xl bg-[#E8F5E9] p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm text-slate-500">Student Dashboard</p>
-          <h1 className="text-2xl font-semibold text-slate-900">Hello, {data?.profile?.name || "Student"}</h1>
+          <p className="font-medium text-[#2D7A3A]">
+            Based on your progress, {tutorMatchCount} verified tutor{tutorMatchCount === 1 ? "" : "s"} found
+          </p>
+          <p className="mt-1 text-sm text-[#1A1A1A]/60">Personalized matches from your learning history</p>
         </div>
-        <Link href="/dashboard/find-tutor" className="inline-flex items-center rounded-lg bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800">
-          Find Tutors
+        <Link
+          href="/dashboard/student/find-tutor"
+          className="inline-flex items-center justify-center rounded-lg bg-[#2D7A3A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#256830]"
+        >
+          View Matches →
         </Link>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card className="shadow-none">
-          <CardContent className="p-6">
-            <p className="text-sm font-medium text-slate-500">Profile</p>
-            <div className="mt-4 space-y-2 text-sm text-slate-600">
-              <p><span className="font-medium text-slate-900">Name:</span> {data?.profile?.name || "—"}</p>
-              <p><span className="font-medium text-slate-900">Email:</span> {data?.profile?.email || "—"}</p>
-              <p><span className="font-medium text-slate-900">Phone:</span> {data?.profile?.phone || "—"}</p>
-              <p><span className="font-medium text-slate-900">Institution:</span> {data?.profile?.institution || "—"}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-none">
-          <CardContent className="p-6">
-            <p className="text-sm font-medium text-slate-500">Quick Summary</p>
-            <div className="mt-4 space-y-3 text-sm text-slate-600">
-              <div className="rounded-lg border bg-slate-50 p-3">
-                <p className="font-medium text-slate-900">Role</p>
-                <p className="mt-1">{data?.profile?.role || "Student"}</p>
-              </div>
-              <div className="rounded-lg border bg-slate-50 p-3">
-                <p className="font-medium text-slate-900">Learning Focus</p>
-                <p className="mt-1">Track sessions, progress, and tutor performance</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {stats.map((item) => (
-          <DashboardStateCard key={item.title} title={item.title} value={item.value} description={item.description} icon={item.icon} />
-        ))}
-      </div>
-
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card className="shadow-none">
-          <CardHeader>
-            <CardTitle>Today&apos;s Sessions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {(!data?.sessions || data.sessions.length === 0) ? (
-              <div className="rounded-lg border border-dashed p-4 text-sm text-slate-500">No sessions scheduled for today.</div>
+        <section className="rounded-xl border border-[#E8F5E9] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+          <h2 className="mb-4 text-lg font-semibold text-[#1A1A1A]">Today&apos;s Sessions</h2>
+          <div className="space-y-3">
+            {!data?.todaySessions?.length ? (
+              <p className="rounded-xl border border-dashed border-[#E8F5E9] p-6 text-center text-sm text-[#1A1A1A]/60">
+                No sessions today 📚
+              </p>
             ) : (
-              data.sessions.map((session) => (
-                <div key={session.id ?? `${session.subject}-${session.time}`} className="rounded-lg border p-4">
+              data.todaySessions.map((session) => (
+                <div key={session.session_id ?? `${session.subject}-${session.scheduled_time}`} className="rounded-xl border border-[#E8F5E9] bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-medium text-slate-900">{session.subject || "Session"}</p>
-                      <p className="text-sm text-slate-500">{session.tutor || "Tutor"}</p>
+                      <p className="text-xs font-medium uppercase tracking-wide text-[#1A1A1A]/50">
+                        {session.scheduled_time ? new Date(session.scheduled_time).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : ""}
+                      </p>
+                      <p className="mt-1 font-semibold text-[#2D7A3A]">{session.subject || "Session"}</p>
+                      <p className="text-sm text-[#1A1A1A]/70">Tutor #{session.tutor_id ?? "-"}</p>
                     </div>
-                    <div className="text-right text-sm text-slate-500">
-                      <p>{session.date || "Today"}</p>
-                      <p>{session.time || "—"}</p>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="inline-flex rounded-full bg-[#E8F5E9] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#2D7A3A]">
+                        {session.status || "upcoming"}
+                      </span>
+                      {session.meeting_link ? (
+                        <a
+                          href={session.meeting_link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center rounded-lg bg-[#2D7A3A] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#256830]"
+                        >
+                          Join
+                        </a>
+                      ) : null}
                     </div>
                   </div>
                 </div>
               ))
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        <Card className="shadow-none">
-          <CardHeader>
-            <CardTitle>Tutors</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {(!data?.tutors || data.tutors.length === 0) ? (
-              <div className="rounded-lg border border-dashed p-4 text-sm text-slate-500">No tutor data available.</div>
+        <section className="rounded-xl bg-[#2D7A3A] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.08)]">
+          <h2 className="mb-4 text-lg font-semibold text-white">My Tutors</h2>
+          <div className="space-y-3">
+            {!data?.myTutors?.length ? (
+              <p className="rounded-xl border border-dashed border-white/20 p-6 text-center text-sm text-white/75">
+                No tutors yet. Find a tutor to get started!
+              </p>
             ) : (
-              data.tutors.map((tutor) => (
-                <div key={tutor.id ?? tutor.name} className="rounded-lg border p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-slate-900">{tutor.name || "Tutor"}</p>
-                      <p className="text-sm text-slate-500">{tutor.subject || "Subject"}</p>
+              data.myTutors.map((tutor) => (
+                <div key={tutor.tutor_id ?? tutor.tutor_name ?? tutor.subject ?? Math.random()} className="flex items-center justify-between gap-3 rounded-xl bg-white/10 p-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-sm font-semibold text-white">
+                      {String(tutor.tutor_id ?? tutor.tutor_name ?? "T").charAt(0).toUpperCase()}
                     </div>
-                    <div className="rounded-full bg-green-50 px-3 py-1 text-sm font-medium text-green-700">⭐ {tutor.rating ?? 0}</div>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-white">{tutor.subject || "Subject"}</p>
+                      <p className="truncate text-xs text-white/70">Tutor #{tutor.tutor_id ?? "-"}</p>
+                    </div>
                   </div>
                 </div>
               ))
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
 
-      <Card className="mt-6 shadow-none">
-        <CardHeader>
-          <CardTitle>Progress</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {(!data?.progress || data.progress.length === 0) ? (
-            <div className="rounded-lg border border-dashed p-4 text-sm text-slate-500">No progress data available.</div>
+      <section className="mt-6 rounded-xl border border-[#E8F5E9] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+        <h2 className="mb-4 text-lg font-semibold text-[#1A1A1A]">Learning Progress</h2>
+        <div className="space-y-4">
+          {!data?.progress?.length ? (
+            <p className="rounded-xl border border-dashed border-[#E8F5E9] p-6 text-center text-sm text-[#1A1A1A]/60">
+              Complete sessions to track progress!
+            </p>
           ) : (
             data.progress.map((item, index) => (
-              <div key={`${item.subject}-${index}`}>
+              <div key={`${item.subject ?? "subject"}-${index}`}>
                 <div className="mb-2 flex items-center justify-between text-sm">
-                  <span className="font-medium text-slate-700">{item.subject || "Subject"}</span>
-                  <span className="text-slate-500">{item.progress ?? 0}%</span>
+                  <span className="font-medium text-[#1A1A1A]">{item.subject || "Subject"}</span>
+                  <span className="text-[#1A1A1A]/60">{item.session_count ?? 0} sessions</span>
                 </div>
-                <div className="h-2 rounded-full bg-slate-100">
-                  <div className="h-2 rounded-full bg-green-700" style={{ width: `${Math.min(100, Math.max(0, item.progress ?? 0))}%` }} />
+                <div className="h-2.5 overflow-hidden rounded-full bg-[#E8F5E9]">
+                  <div
+                    className={[
+                      "h-full rounded-full",
+                      index % 3 === 0 ? "bg-[#2D7A3A]" : index % 3 === 1 ? "bg-[#4CAF50]" : "bg-[#8BC34A]",
+                    ].join(" ")}
+                    style={{ width: `${Math.max(0, Math.min(100, item.progress_percentage ?? 0))}%` }}
+                  />
                 </div>
               </div>
             ))
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
+
+      <section className="mt-6">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#1A1A1A]/50">Quick Actions</h2>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Link
+            href="/dashboard/student/find-tutor"
+            className="rounded-xl border border-[#E8F5E9] bg-white p-4 text-center text-sm font-medium text-[#2D7A3A] shadow-sm hover:bg-[#E8F5E9]"
+          >
+            Find a Tutor
+          </Link>
+          <Link
+            href="/dashboard/student/schedule"
+            className="rounded-xl border border-[#E8F5E9] bg-white p-4 text-center text-sm font-medium text-[#2D7A3A] shadow-sm hover:bg-[#E8F5E9]"
+          >
+            View Schedule
+          </Link>
+          <button
+            type="button"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#E8F5E9] bg-white p-4 text-sm font-medium text-[#2D7A3A] shadow-sm hover:bg-[#E8F5E9]"
+          >
+            <Headphones className="h-4 w-4" />
+            Support
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

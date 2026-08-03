@@ -162,15 +162,17 @@ export default function Home() {
   // Carousel state
   const [testimonialIndex, setTestimonialIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  const [windowWidth, setWindowWidth] = useState<number | null>(null);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const cardsPerView = windowWidth >= 1024 ? 3 : windowWidth >= 768 ? 2 : 1;
+  const cardsPerView =
+    windowWidth === null ? 1 : windowWidth >= 1024 ? 3 : windowWidth >= 768 ? 2 : 1;
   const maxIndex = Math.max(0, testimonials.length - cardsPerView);
   const slidePercent = 100 / cardsPerView;
 

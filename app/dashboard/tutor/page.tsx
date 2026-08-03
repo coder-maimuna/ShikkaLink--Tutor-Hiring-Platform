@@ -1,54 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, BookOpen, CalendarDays, Users, ClipboardList, Clock3, GraduationCap } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import DashboardStateCard from "@/components/dashboard/DashboardStateCard";
+import Link from "next/link";
+import { AlertCircle, CalendarDays, Star, Users } from "lucide-react";
+import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
+import StatCard from "@/components/dashboard/StatCard";
 import api, { apiErrorMessage } from "@/lib/api";
-
-interface TutorDashboardData {
-  profile?: {
-    name?: string;
-    role?: string;
-    email?: string;
-    department?: string;
-  } | null;
-  stats?: {
-    todaySessions?: number;
-    activeStudents?: number;
-    practiceTests?: number;
-    availabilitySlots?: number;
-  } | null;
-  sessions?: Array<{
-    id?: number | string;
-    student?: string;
-    subject?: string;
-    time?: string;
-  }> | null;
-  students?: Array<{
-    id?: number | string;
-    name?: string;
-    level?: string;
-  }> | null;
-  practiceTests?: Array<{
-    id?: number | string;
-    title?: string;
-    status?: string;
-  }> | null;
-  availability?: Array<{
-    id?: number | string;
-    day?: string;
-    slot?: string;
-  }> | null;
-  tuitionBoard?: Array<{
-    id?: number | string;
-    title?: string;
-    dueDate?: string;
-  }> | null;
-}
+import { formatTodayDate } from "@/lib/dashboard-utils";
+import type { TutorDashboardResponse } from "@/lib/dashboard-types";
 
 export default function TutorDashboardPage() {
-  const [data, setData] = useState<TutorDashboardData | null>(null);
+  const [data, setData] = useState<TutorDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,18 +19,12 @@ export default function TutorDashboardPage() {
 
     async function loadDashboard() {
       try {
-        const response = await api.get<TutorDashboardData>("/dashboard/tutor");
-        if (active) {
-          setData(response.data);
-        }
+        const response = await api.get<TutorDashboardResponse>("/dashboard/tutor");
+        if (active) setData(response.data);
       } catch (err) {
-        if (active) {
-          setError(apiErrorMessage(err));
-        }
+        if (active) setError(apiErrorMessage(err));
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     }
 
@@ -78,36 +34,28 @@ export default function TutorDashboardPage() {
     };
   }, []);
 
-  const stats = useMemo(() => [
-    {
-      title: "Today&apos;s Sessions",
-      value: data?.stats?.todaySessions ?? 0,
-      description: "Scheduled today",
-      icon: <CalendarDays className="h-5 w-5" />,
-    },
-    {
-      title: "Active Students",
-      value: data?.stats?.activeStudents ?? 0,
-      description: "Current learners",
-      icon: <Users className="h-5 w-5" />,
-    },
-    {
-      title: "Practice Tests",
-      value: data?.stats?.practiceTests ?? 0,
-      description: "Assigned or pending",
-      icon: <ClipboardList className="h-5 w-5" />,
-    },
-    {
-      title: "Availability Slots",
-      value: data?.stats?.availabilitySlots ?? 0,
-      description: "Open time slots",
-      icon: <Clock3 className="h-5 w-5" />,
-    },
-  ], [data]);
+  const stats = useMemo(
+    () => [
+      {
+        title: "Active Students",
+        value: data?.stats?.active_students ?? 0,
+        icon: <Users className="h-5 w-5" />,
+      },
+      {
+        title: "Sessions This Month",
+        value: data?.stats?.sessions_this_month ?? 0,
+        icon: <CalendarDays className="h-5 w-5" />,
+      },
+      {
+        title: "Rating",
+        value: data?.stats?.rating ?? 0,
+        icon: <Star className="h-5 w-5" />,
+      },
+    ],
+    [data?.stats],
+  );
 
-  if (loading) {
-    return <div className="p-6 text-sm text-slate-500">Loading tutor dashboard…</div>;
-  }
+  if (loading) return <DashboardSkeleton label="Loading tutor dashboard…" />;
 
   if (error) {
     return (
@@ -120,123 +68,191 @@ export default function TutorDashboardPage() {
     );
   }
 
+  const sessionCount = data?.todaySessions?.length ?? 0;
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="text-sm text-slate-500">Tutor Dashboard</p>
-          <h1 className="text-2xl font-semibold text-slate-900">Welcome back, {data?.profile?.name || "Tutor"}</h1>
-        </div>
-      </div>
+      <section className="mb-6">
+        <h1 className="text-2xl font-semibold text-[#1A1A1A]">
+          Welcome Back, {data?.user?.full_name || "Tutor"}! 👋
+        </h1>
+        <p className="mt-1 text-sm text-[#1A1A1A]/60">{formatTodayDate()}</p>
+        <p className="mt-1 text-sm font-medium text-[#2D7A3A]">
+          You have {sessionCount} class{sessionCount === 1 ? "" : "es"} today
+        </p>
+      </section>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {stats.map((item) => (
-          <DashboardStateCard key={item.title} title={item.title} value={item.value} description={item.description} icon={item.icon} />
+          <StatCard key={item.title} title={item.title} value={item.value} icon={item.icon} />
         ))}
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card className="shadow-none">
-          <CardHeader>
-            <CardTitle>Today&apos;s Sessions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {(!data?.sessions || data.sessions.length === 0) ? (
-              <div className="rounded-lg border border-dashed p-4 text-sm text-slate-500">No sessions scheduled today.</div>
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <section className="rounded-xl border border-[#E8F5E9] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+          <h2 className="mb-4 text-lg font-semibold text-[#1A1A1A]">Today&apos;s Sessions</h2>
+          <div className="space-y-3">
+            {!data?.todaySessions?.length ? (
+              <p className="rounded-xl border border-dashed border-[#E8F5E9] p-6 text-center text-sm text-[#1A1A1A]/60">
+                No classes today
+              </p>
             ) : (
-              data.sessions.map((session) => (
-                <div key={session.id ?? `${session.student}-${session.time}`} className="rounded-lg border p-4">
+              data.todaySessions.map((session, index) => (
+                <div key={session.session_id ?? `${session.subject}-${session.scheduled_time}`} className="rounded-xl border border-[#E8F5E9] bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-medium text-slate-900">{session.subject || "Session"}</p>
-                      <p className="text-sm text-slate-500">{session.student || "Student"}</p>
+                      <p className="text-xs font-medium uppercase tracking-wide text-[#1A1A1A]/50">
+                        {session.scheduled_time ? new Date(session.scheduled_time).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : ""}
+                      </p>
+                      <p className="mt-1 font-semibold text-[#2D7A3A]">{session.subject || "Session"}</p>
+                      <p className="text-sm text-[#1A1A1A]/70">Student #{session.student_id ?? "-"}</p>
                     </div>
-                    <p className="text-sm text-slate-500">{session.time || "—"}</p>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="inline-flex rounded-full bg-[#E8F5E9] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#2D7A3A]">
+                        {session.status || "upcoming"}
+                      </span>
+                      {index === 0 && session.meeting_link ? (
+                        <a
+                          href={session.meeting_link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center rounded-lg bg-[#2D7A3A] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#256830]"
+                        >
+                          Start
+                        </a>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               ))
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        <Card className="shadow-none">
-          <CardHeader>
-            <CardTitle>Students</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {(!data?.students || data.students.length === 0) ? (
-              <div className="rounded-lg border border-dashed p-4 text-sm text-slate-500">No students assigned yet.</div>
+        <section className="rounded-xl border border-[#E8F5E9] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-[#1A1A1A]">My Students</h2>
+          </div>
+          <div className="space-y-3">
+            {!data?.myStudents?.length ? (
+              <p className="rounded-xl border border-dashed border-[#E8F5E9] p-6 text-center text-sm text-[#1A1A1A]/60">
+                No students yet
+              </p>
             ) : (
-              data.students.map((student) => (
-                <div key={student.id ?? student.name} className="rounded-lg border p-4">
-                  <p className="font-medium text-slate-900">{student.name || "Student"}</p>
-                  <p className="text-sm text-slate-500">{student.level || "Level not provided"}</p>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <Card className="shadow-none">
-          <CardHeader>
-            <CardTitle>Practice Tests</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {(!data?.practiceTests || data.practiceTests.length === 0) ? (
-              <div className="rounded-lg border border-dashed p-4 text-sm text-slate-500">No practice tests available.</div>
-            ) : (
-              data.practiceTests.map((item) => (
-                <div key={item.id ?? item.title} className="rounded-lg border p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-medium text-slate-900">{item.title || "Test"}</p>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium uppercase tracking-wide text-slate-600">{item.status || "Pending"}</span>
+              data.myStudents.slice(0, 5).map((student) => (
+                <div key={student.student_id ?? student.student_name ?? student.subject ?? Math.random()} className="flex items-center justify-between gap-3 rounded-xl border border-[#E8F5E9] bg-white p-3 shadow-sm">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E8F5E9] text-sm font-semibold text-[#2D7A3A]">
+                      {String(student.student_id ?? student.student_name ?? "S").charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-[#1A1A1A]">{student.subject || "Subject"}</p>
+                      <p className="truncate text-xs text-[#1A1A1A]/60">Student #{student.student_id ?? "-"}</p>
+                    </div>
                   </div>
                 </div>
               ))
             )}
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-none">
-          <CardHeader>
-            <CardTitle>Availability Slots</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {(!data?.availability || data.availability.length === 0) ? (
-              <div className="rounded-lg border border-dashed p-4 text-sm text-slate-500">No availability info provided.</div>
-            ) : (
-              data.availability.map((slot) => (
-                <div key={slot.id ?? `${slot.day}-${slot.slot}`} className="rounded-lg border p-4">
-                  <p className="font-medium text-slate-900">{slot.day || "Day"}</p>
-                  <p className="text-sm text-slate-500">{slot.slot || "Time slot"}</p>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
 
-      <Card className="mt-6 shadow-none">
-        <CardHeader>
-          <CardTitle>Tuition Board</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {(!data?.tuitionBoard || data.tuitionBoard.length === 0) ? (
-            <div className="rounded-lg border border-dashed p-4 text-sm text-slate-500">No tuition board items found.</div>
+      <div className="mt-6 grid gap-6 xl:grid-cols-2">
+        <section className="rounded-xl border border-[#E8F5E9] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-[#1A1A1A]">Practice Tests</h2>
+          </div>
+          <div className="space-y-3">
+            {!data?.practiceTests?.length ? (
+              <p className="rounded-xl border border-dashed border-[#E8F5E9] p-6 text-center text-sm text-[#1A1A1A]/60">
+                No tests created yet
+              </p>
+            ) : (
+              data.practiceTests.map((test) => {
+                const tone =
+                  test.status === "published"
+                    ? "bg-[#E8F5E9] text-[#2D7A3A]"
+                    : test.status === "pending"
+                      ? "bg-[#FFF3E0] text-[#F59E0B]"
+                      : "text-[#DC2626]";
+
+                return (
+                  <div key={test.test_id ?? test.title ?? Math.random()} className="rounded-xl border border-[#E8F5E9] bg-white p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-[#1A1A1A]">{test.title || "Untitled test"}</p>
+                        <p className="mt-1 text-sm text-[#4B5563]">{test.type || "General"} · {test.question_count ?? 0} questions</p>
+                      </div>
+                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${tone}`}>
+                        {test.status || "draft"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-xl bg-[#E8F5E9] p-5">
+          <h2 className="mb-4 text-lg font-semibold text-[#2D7A3A]">Upcoming Slots</h2>
+          {!data?.slots?.length ? (
+            <p className="rounded-xl border border-dashed border-[#2D7A3A]/20 bg-white/50 p-6 text-center text-sm text-[#1A1A1A]/60">
+              No availability set
+            </p>
           ) : (
-            data.tuitionBoard.map((item) => (
-              <div key={item.id ?? item.title} className="rounded-lg border p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-medium text-slate-900">{item.title || "Board item"}</p>
-                  <p className="text-sm text-slate-500">{item.dueDate || "—"}</p>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(
+                data.slots.reduce<Record<string, Array<{ time_slot?: string; subject?: string }>>>((acc, slot) => {
+                  const key = slot.day_of_week ?? "Other";
+                  acc[key] = acc[key] ?? [];
+                  acc[key].push({ time_slot: slot.time_slot, subject: slot.subject });
+                  return acc;
+                }, {}),
+              ).map(([day, slots]) => (
+                <div key={day} className="w-full rounded-xl bg-white/60 p-3">
+                  <p className="mb-2 text-sm font-semibold text-[#2D7A3A]">{day}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {slots.map((slot, index) => (
+                      <span key={`${day}-${slot.time_slot ?? index}`} className="rounded-full bg-[#2D7A3A] px-2.5 py-1 text-xs font-medium text-white">
+                        {slot.time_slot || "Time"} · {slot.subject || "Subject"}
+                      </span>
+                    ))}
+                  </div>
                 </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+
+      <section className="mt-6 rounded-xl bg-[#2D7A3A] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.08)]">
+        <h2 className="mb-4 text-lg font-semibold text-white">Tuition Board</h2>
+        <div className="space-y-3">
+          {!data?.tuitionBoard?.length ? (
+            <p className="rounded-xl border border-dashed border-white/20 p-6 text-center text-sm text-white/75">
+              No listings available
+            </p>
+          ) : (
+            data.tuitionBoard.map((listing) => (
+              <div
+                key={listing.listing_id}
+                className="flex flex-col gap-3 rounded-xl bg-white/10 p-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="font-semibold text-white">{listing.subject || "Subject"}</p>
+                  <p className="mt-1 text-sm text-white/75">
+                    {listing.mode || "Mode"} · {listing.days_per_week ?? 0} days/week · {listing.hours_per_session ?? 0} hrs/session · {listing.rate_bdt ?? 0} BDT
+                  </p>
+                </div>
+                <button type="button" className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#2D7A3A] hover:bg-[#E8F5E9]">
+                  Apply Now
+                </button>
               </div>
             ))
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </div>
   );
 }
