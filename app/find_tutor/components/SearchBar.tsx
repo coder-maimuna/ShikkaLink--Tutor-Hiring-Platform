@@ -14,7 +14,7 @@ export default function SearchBar({
 
   return (
 
-    <div className="mt-10 flex w-full max-w-4xl overflow-hidden rounded-full bg-white shadow-lg">
+    <div className="mt-10 flex w-full max-w-4xl overflow-hidden rounded-full border-1 border-border border-green-900 bg-white shadow-lg">
 
       <input
         value={value}

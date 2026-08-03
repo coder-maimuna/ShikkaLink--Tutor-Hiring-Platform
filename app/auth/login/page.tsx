@@ -123,11 +123,6 @@ export default function LoginPage() {
                 Sign In
               </Button>
 
-              {/* Or divider */}
-              <div className="auth-or-divider">
-                <span>or</span>
-              </div>
-
             </form>
           </div>
         )}

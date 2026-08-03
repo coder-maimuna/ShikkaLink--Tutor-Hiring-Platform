@@ -4,16 +4,23 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, ChevronRight, ChevronLeft, Star, Users, BookOpen, TrendingUp, Menu, X, ArrowRight, Zap, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform,Variants } from 'framer-motion';
 import CountUp from 'react-countup';
 
+
 // Enhanced animation variants for SaaS premium feel
-const fadeUpVariants = {
-  hidden: { opacity: 0, y: 40 },
+const fadeUpVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 40,
+  },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.8, ease: [0.23, 1, 0.82, 1] },
+    transition: {
+      duration: 0.8,
+      ease: "easeOut",
+    },
   },
 };
 
