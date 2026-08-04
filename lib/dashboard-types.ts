@@ -47,6 +47,9 @@ export interface TutorDashboardResponse {
     student_name?: string;
   }>;
   myStudents?: Array<{
+    session_id: string;
+    booked_date: any;
+    status: string;
     student_id?: number;
     student_name?: string;
     subject?: string;

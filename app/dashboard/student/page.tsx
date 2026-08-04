@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { AlertCircle, BookOpen, CalendarDays, GraduationCap, Headphones, Users, Trash2 } from "lucide-react";
 import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
