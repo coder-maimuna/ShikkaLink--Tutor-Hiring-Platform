@@ -99,6 +99,7 @@ export default function LoginPage() {
                 Email Address <span className="auth-required">*</span>
               </label>
               <input
+                data-testid="login-email"
                 type="email"
                 id="email"
                 placeholder="Enter your email address"
@@ -111,6 +112,7 @@ export default function LoginPage() {
                 Password <span className="auth-required">*</span>
               </label>
               <input
+                data-testid="login-password"
                 type="password"
                 id="pass"
                 placeholder="Enter your Password"
@@ -119,7 +121,7 @@ export default function LoginPage() {
                 required
               />
 
-              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 rounded-lg h-10 mt-3">
+              <Button data-testid="login-button" type="submit" className="w-full bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 rounded-lg h-10 mt-3">
                 Sign In
               </Button>
 

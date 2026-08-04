@@ -1,13 +1,17 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search, ChevronRight, ChevronLeft, Star, Users, BookOpen, TrendingUp, Menu, X, ArrowRight, Zap, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, useScroll, useTransform,Variants } from 'framer-motion';
 import CountUp from 'react-countup';
-
+import Link from "next/link";
+const navItems = [
+  { name: "Find Mentors", href: "/find_tutor" },
+  { name: "Features", href: "#features" },
+  { name: "About", href: "/About" },
+];
 
 // Enhanced animation variants for SaaS premium feel
 const fadeUpVariants: Variants = {
@@ -250,23 +254,27 @@ export default function Home() {
 
               {/* Desktop Menuuuu */}
               <div className="hidden md:flex items-center gap-8">
-                {['Find Mentors', 'Features', 'About', 'Pricing'].map((item) => (
-                  <motion.a
-                    key={item}
-                    href={item === 'Find Mentors' ? '/find_tutor' : '#'}
-                    className="text-sm text-muted-foreground hover:text-foreground transition relative block"
-                    whileHover={{ scale: 1.05 }}
-                  >
-                    {item}
-                    <motion.span
-                      className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-primary to-primary/50"
-                      initial={{ width: 0 }}
-                      whileHover={{ width: '100%' }}
-                      transition={{ duration: 0.3 }}
-                    />
-                  </motion.a>
-                ))}
-              </div>
+  {navItems.map((item) => (
+    <motion.div
+      key={item.name}
+      whileHover={{ scale: 1.05 }}
+    >
+      <Link
+        href={item.href}
+        className="text-sm text-muted-foreground hover:text-foreground transition relative"
+      >
+        {item.name}
+
+        <motion.span
+          className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-primary to-primary/50"
+          initial={{ width: 0 }}
+          whileHover={{ width: "100%" }}
+          transition={{ duration: 0.3 }}
+        />
+      </Link>
+    </motion.div>
+  ))}
+</div>
 
               {/* Auth Buttons */}
               <div className="hidden md:flex items-center gap-3">
@@ -480,7 +488,7 @@ export default function Home() {
         </motion.section>
 
         {/* Features Section */}
-        <section className="py-20 md:py-28">
+        <section id="features" className="py-20 md:py-28">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Section Header */}
             <motion.div
